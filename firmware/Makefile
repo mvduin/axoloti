@@ -6,6 +6,7 @@
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT += -fno-strict-aliasing
   USE_OPT += -Wno-unused-parameter
   USE_OPT += -Wno-unused-function
 endif
