@@ -71,15 +71,14 @@ void usbh_midi_init(void)
 }
 
 
-// CIN for everyting except sysex
-inline uint8_t calcCIN(uint8_t b0) {
-    return (b0 & 0xF0 ) >> 4;
-    
+// CIN for everything except sysex
+inline uint8_t calcCIN(uint8_t b0, uint8_t syscin) {
+    return b0 < 0xf0 ? b0 >> 4 : syscin;
 }
 
 // pack header CN | CIN
-inline uint8_t calcPH(uint8_t port, uint8_t b0) {
-    uint8_t cin  = calcCIN(b0);
+inline uint8_t calcPH(uint8_t port, uint8_t b0, uint8_t syscin) {
+    uint8_t cin  = calcCIN(b0, syscin);
     uint8_t ph = ((( port - 1) & 0x0F) << 4)  | cin;
     return ph;
 }
@@ -94,7 +93,7 @@ void usbh_MidiSend1(uint8_t port, uint8_t b0) {
         return;
     }
     
-    send_ring_buffer.event[next].data[0]=calcPH(port, b0);
+    send_ring_buffer.event[next].data[0]=calcPH(port, b0, 5);
     send_ring_buffer.event[next].data[1]=b0;
     send_ring_buffer.event[next].data[2]=0;
     send_ring_buffer.event[next].data[3]=0;
@@ -110,7 +109,7 @@ void usbh_MidiSend2(uint8_t port, uint8_t b0, uint8_t b1) {
         return;
     }
     
-    send_ring_buffer.event[next].data[0]=calcPH(port, b0);
+    send_ring_buffer.event[next].data[0]=calcPH(port, b0, 2);
     send_ring_buffer.event[next].data[1]=b0;
     send_ring_buffer.event[next].data[2]=b1;
     send_ring_buffer.event[next].data[3]=0;
@@ -126,7 +125,7 @@ void usbh_MidiSend3(uint8_t port, uint8_t b0, uint8_t b1, uint8_t b2) {
         return;
     }
     
-    send_ring_buffer.event[next].data[0]=calcPH(port, b0);
+    send_ring_buffer.event[next].data[0]=calcPH(port, b0, 3);
     send_ring_buffer.event[next].data[1]=b0;
     send_ring_buffer.event[next].data[2]=b1;
     send_ring_buffer.event[next].data[3]=b2;
