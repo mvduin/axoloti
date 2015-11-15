@@ -71,9 +71,30 @@ void usbh_midi_init(void)
 }
 
 
+// special (non-MIDI) packet types
+#define CIN_MISC	0x0
+#define CIN_CABLE	0x1
+
+// packet type for unparsed byte, also used for real-time messages
+#define CIN_RAW_BYTE	0xF
+
+// packet type for 1/2/3-byte system common messages
+#define CIN_SYS_1	0x5
+#define CIN_SYS_2	0x2
+#define CIN_SYS_3	0x3
+
+// packet types for sysex: 3-byte non-final and 1/2/3-byte final
+#define CIN_SYSEX_START	0x4
+#define CIN_SYSEX_END_1	0x5
+#define CIN_SYSEX_END_2	0x6
+#define CIN_SYSEX_END_3	0x7
+
+// channel messages use ( status >> 4 ) as packet type.
+
+
 // CIN for everything except sysex
 inline uint8_t calcCIN(uint8_t b0, uint8_t syscin) {
-    return b0 < 0xf0 ? b0 >> 4 : syscin;
+    return ( b0 < 0xf0 || b0 >= 0xf8 ) ? ( b0 >> 4 ) : syscin;
 }
 
 // pack header CN | CIN
@@ -93,7 +114,7 @@ void usbh_MidiSend1(uint8_t port, uint8_t b0) {
         return;
     }
     
-    send_ring_buffer.event[next].data[0]=calcPH(port, b0, 5);
+    send_ring_buffer.event[next].data[0]=calcPH(port, b0, CIN_SYS_1);
     send_ring_buffer.event[next].data[1]=b0;
     send_ring_buffer.event[next].data[2]=0;
     send_ring_buffer.event[next].data[3]=0;
@@ -109,7 +130,7 @@ void usbh_MidiSend2(uint8_t port, uint8_t b0, uint8_t b1) {
         return;
     }
     
-    send_ring_buffer.event[next].data[0]=calcPH(port, b0, 2);
+    send_ring_buffer.event[next].data[0]=calcPH(port, b0, CIN_SYS_2);
     send_ring_buffer.event[next].data[1]=b0;
     send_ring_buffer.event[next].data[2]=b1;
     send_ring_buffer.event[next].data[3]=0;
@@ -125,17 +146,12 @@ void usbh_MidiSend3(uint8_t port, uint8_t b0, uint8_t b1, uint8_t b2) {
         return;
     }
     
-    send_ring_buffer.event[next].data[0]=calcPH(port, b0, 3);
+    send_ring_buffer.event[next].data[0]=calcPH(port, b0, CIN_SYS_3);
     send_ring_buffer.event[next].data[1]=b0;
     send_ring_buffer.event[next].data[2]=b1;
     send_ring_buffer.event[next].data[3]=b2;
     send_ring_buffer.write_ptr=next;
 }
-
-#define CIN_SYSEX_START 0x04
-#define CIN_SYSEX_END_1 0x05
-#define CIN_SYSEX_END_2 0x06
-#define CIN_SYSEX_END_3 0x07
 
 void usbh_MidiSendSysEx(uint8_t port, uint8_t bytes[], uint8_t len) {
     USBH_DbgLog("usbh_MidiSysEx %i",len);
